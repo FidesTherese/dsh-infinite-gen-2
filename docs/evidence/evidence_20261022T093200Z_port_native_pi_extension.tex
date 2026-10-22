@@ -1,0 +1,250 @@
+\documentclass[10pt]{ltjsarticle}
+\usepackage{tem}
+\usepackage{hyperref}
+\usepackage{listings}
+\pagestyle{fancy}
+\lhead{Infinite Generation Two}
+\rhead{Native Pi migration evidence}
+\setlength{\headheight}{16pt}
+\setlength{\headsep}{30pt}
+\definecolor{RemovedBg}{HTML}{FCE8E6}
+\definecolor{AddedBg}{HTML}{E6F4EA}
+\definecolor{CodeKeyword}{HTML}{633194}
+\definecolor{CodeString}{HTML}{075E54}
+\definecolor{CodeComment}{HTML}{586A6A}
+\lstdefinelanguage{TypeScript}{
+  morekeywords={import,from,export,default,type,function,const,let,if,else,return,async,await,true,false,null,undefined,new,throw,void,string,boolean},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]`
+}
+\lstset{language=TypeScript,
+  basicstyle=\ttfamily\footnotesize\addfontfeatures{RawFeature=-calt},
+  keywordstyle=\color{CodeKeyword}\bfseries,
+  stringstyle=\color{CodeString},commentstyle=\color{CodeComment},
+  breaklines=true,breakatwhitespace=false,columns=fullflexible,keepspaces=true,
+  showstringspaces=false,numbers=left,numberstyle=\tiny\color{gray},
+  numbersep=8pt,xleftmargin=18pt,xrightmargin=4pt,frame=single,
+  rulecolor=\color{gray!35},tabsize=2,aboveskip=6pt,belowskip=6pt}
+\begin{document}
+\title{Native Pi Extension Migration\\\large{--- Code Change Evidence ---}}
+\author{Fides Thérèse}
+\date{2026-10-22}
+\maketitle
+\thispagestyle{plain}
+
+\section{Change metadata}
+Timestamp: \texttt{20261022T093200Z}. Delivery mode: Standard.
+Triggers: CRUD read behavior (bundled prompt/profile exposure) and bug fixes
+(host incompatibility, cancellation status, and mid-run toggle state).
+Baseline commit: \path{3a701c334dd15e59c6ac663d93d313489385bbc5}.
+The highlighted regions are extracted from the final staged source diff;
+line numbers refer to the corresponding original or added source file.
+The SHA-256 of the staged code/config/test diff is:\par\noindent
+\texttt{22bd49efe8a29f4f25e8dcf486b7c131ddbdefbc8d81d896247d9937f926b490}
+
+\section{Intent and affected surface}
+Replace DeepSeek Harness-only registration with a native Pi extension while
+preserving the original prompt and license exactly. Pi must retain its base
+instructions, tools, project context, and approval mechanisms. The English
+README replaces obsolete installation instructions and promotional material.
+
+\begin{description}
+\item[Adapter.] \path{index.ts}: default factory, named prompt section,
+commands, startup flag, assistant-message observation, automatic compaction
+failure outcomes, final settlement, and keyed UI cleanup.
+\item[Helpers.] \path{src/profile.ts}: integrity loader, metadata builder,
+TypeBox schemas, and profile-tool result. \path{src/armor.ts}: text extraction,
+inherited bilingual score heuristic, and English status formatting.
+\item[Removed host-specific surface.] Legacy entry point, browser React badge,
+Cordis declaration, and four Harness install/uninstall scripts. The unused
+sponsor image and old Harness note are removed; Git retains their history.
+\item[Configuration and verification.] Pi package manifest, lockfile, strict
+TypeScript configuration, exact-byte Git attributes, SDK/unit tests, and
+CLI/package-install smoke tests. The prompt and MIT license have no diff.
+\end{description}
+
+\section{Highlighted code changes}
+Pale red denotes removed code; pale green denotes added code. Keywords,
+strings, and comments retain independent syntax colors. The original profile
+used the Harness \texttt{output} renderer and returned a raw value; the native
+tool explicitly returns Pi's content, details, and structured result. Routine
+unchanged metadata and wholesale removed installers are not dumped here.
+\subsection{Prompt registration}
+\noindent\textbf{Removed --- \texttt{index.js}.}\par\smallskip
+\begin{lstlisting}[backgroundcolor=\color{RemovedBg},firstnumber=128]
+  ctx.effect(() => ctx.systemPrompt.section({
+    name: "infinite-gen-2:global-system-prompt",
+    order: 100,
+    text: PROMPT_TEXT,
+  }));
+  ctx.effect(() => ctx.tools.register(profileTool));
+\end{lstlisting}
+\noindent\textbf{Added --- \texttt{index.ts}.}\par\smallskip
+\begin{lstlisting}[backgroundcolor=\color{AddedBg},firstnumber=112]
+  pi.on("before_agent_start", (event) => {
+    if (state.enabled) {
+      event.systemPromptOptions.sections[PROMPT_SECTION] = promptText;
+    } else {
+      delete event.systemPromptOptions.sections[PROMPT_SECTION];
+    }
+  });
+\end{lstlisting}
+\subsection{Tool result contract}
+\noindent\textbf{Removed --- \texttt{index.js}.}\par\smallskip
+\begin{lstlisting}[backgroundcolor=\color{RemovedBg},firstnumber=6]
+const objectOutput = {
+  schema: { type: "object", additionalProperties: true },
+  render: (_args, value) => [{ type: "text", text: JSON.stringify(value) }],
+};
+\end{lstlisting}
+\noindent\textbf{Added --- \texttt{src/profile.ts}.}\par\smallskip
+\begin{lstlisting}[backgroundcolor=\color{AddedBg},firstnumber=95]
+  return {
+    name: "infinite_gen2_profile",
+    label: "Infinite Gen 2 profile",
+    description: "Return the unchanged bundled Infinite Generation Two system prompt and upstream calibration metadata.",
+    parameters: PROFILE_PARAMETERS,
+    outputSchema: PROFILE_SCHEMA,
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    /**
+     * Return a fresh profile result for the bundled prompt.
+     *
+     * This operation has no arguments or external side effects and exposes the
+     * same value to the model, UI, and programmatic tool callers.
+     *
+     * return result: Promise<AgentToolResult<InfiniteGen2Profile>>; complete profile result.
+     */
+    async execute() {
+      const profile = buildProfile(promptText);
+      return {
+        content: [{ type: "text", text: JSON.stringify(profile) }],
+        details: profile,
+        structuredContent: profile,
+      };
+    },
+  };
+\end{lstlisting}
+\subsection{Run and cancellation lifecycle}
+\noindent\textbf{Removed --- \texttt{index.js}.}\par\smallskip
+\begin{lstlisting}[backgroundcolor=\color{RemovedBg},firstnumber=110]
+function armorProjectionApply(state, event) {
+  if (!event || typeof event !== "object") return state;
+  if (event.type === "user/message") {
+    return { running: true, verdict: null, words: [] };
+  }
+  if (event.type === "assistant/message") {
+    const text = armorTextOf(event?.data?.message?.content);
+    if (!text.trim()) return state;
+    const scored = armorScore(text);
+    return { running: false, verdict: scored.verdict, words: scored.words };
+  }
+  return state;
+}
+\end{lstlisting}
+\noindent\textbf{Added --- \texttt{index.ts}.}\par\smallskip
+\begin{lstlisting}[backgroundcolor=\color{AddedBg},firstnumber=120]
+  pi.on("agent_start", (_event, ctx) => {
+    state = { ...state, running: true, score: null, outcome: null };
+    publishArmorStatus(ctx);
+  });
+  pi.on("message_end", (event, ctx) => {
+    if (!state.enabled || event.message.role !== "assistant") return;
+    const message = event.message;
+    if (message.stopReason === "error" || message.stopReason === "aborted") {
+      state = { ...state, score: null, outcome: message.stopReason };
+    } else {
+      const text = extractResponseText(message.content);
+      if (!text.trim()) return;
+      state = { ...state, score: scoreResponseText(text), outcome: null };
+    }
+    publishArmorStatus(ctx);
+  });
+  pi.on("session_compact_failed", (event, ctx) => {
+    if (!state.enabled || !state.running || event.reason === "manual") return;
+    state = { ...state, score: null, outcome: event.aborted ? "aborted" : "error" };
+    publishArmorStatus(ctx);
+  });
+  pi.on("agent_settled", (_event, ctx) => {
+    state = { ...state, running: false };
+    publishArmorStatus(ctx);
+  });
+\end{lstlisting}
+
+\subsection{Mid-run enablement invariant}
+The added command transition below preserves the actual run's busy state.
+Enablement affects scoring and the next prompt, not whether Pi has settled.
+\noindent\textbf{Added --- \texttt{index.ts}.}\par\smallskip
+\begin{lstlisting}[backgroundcolor=\color{AddedBg}]
+      if (action === "on" || action === "off") {
+        state = { ...state, enabled: action === "on", score: null, outcome: null };
+        publishArmorStatus(ctx);
+        message = formatArmorStatus(state);
+\end{lstlisting}
+
+\section{Reasoning}
+A stable default factory and explicit package resource manifest replace the
+unavailable Harness/Cordis/browser APIs. Assigning the same owned section is
+idempotent and preserves all unrelated instructions; disabling deletes only
+that section. The integrity loader hashes raw bytes before UTF-8 decoding,
+and the Git attribute prevents checkout-time newline conversion.
+
+The native tool's TypeBox input rejects extra arguments. Its output schema,
+model-facing text, details, and structured JSON describe the same fresh object.
+It is read-only and remains callable when prompt injection is disabled.
+
+The adapter records busy state until \texttt{agent\_settled}, even across
+retries, queued work, and toggle commands. A failed or cancelled automatic
+compaction can occur after a successful assistant message without another
+assistant response; its event therefore clears stale pass status. Manual or
+idle compaction is ignored. Errors and cancellations never become a passing
+verdict. The detector observes text only and never rewrites output or
+initiates a model retry.
+
+\section{Verification}
+Executed on Windows with Node.js 24.11.1 and the pinned Pi 0.99.1 development
+API. All commands below completed successfully:
+\begin{itemize}
+\item \texttt{npm ci --ignore-scripts --no-audit --no-fund}: installed the
+locked development dependencies. npm reported one upstream
+\texttt{node-domexception} deprecation warning; no install scripts ran.
+\item \texttt{npm test}: 31 SDK/unit tests passed, including real Pi loader,
+runner, command, and tool execution; prompt tampering/missing assets;
+section preservation; independent sessions; cancellation; and mid-run toggles.
+\item \texttt{npm run check}: strict TypeScript check passed.
+\item \texttt{npm run smoke}: three tests passed for local installation,
+configured package discovery, directory loading, and explicit-file loading.
+All CLI state was isolated from the user's agent directory.
+\item \texttt{npm pack --dry-run}: seven required files, including the prompt
+and both source helpers; no browser, installer, or sponsor assets.
+\item Pi 1.4.0 was invoked through \texttt{npm exec} with offline resource
+flags and this package as its explicit extension. Its help output included
+\texttt{--infinite-gen2-off}; extension loading succeeded.
+\item Node assertions compared the prompt and license bytes directly with
+\texttt{git show HEAD:<path>}; both matched. The README passed English-only
+and removed-advertisement checks. \texttt{git diff --cached --check} passed.
+\end{itemize}
+The first regression demonstrated that the legacy entry point had no Pi
+default factory. Review regressions reproduced both a stale passing score
+after automatic compaction cancellation and premature idle state on enablement;
+the focused five-case suite passed after correction.
+
+The prompt's frozen SHA-256 remains:\par\noindent
+\texttt{02679eb726507d5a6bfe0a327c8469965440be7a7c5104cab57b8d1e529ec466}
+
+\section{Residual limits}
+No live DeepSeek or other paid model request was made. SDK lifecycle coverage
+targets Pi 0.99.1; Pi 1.4.0 has a CLI-load smoke check, not the same complete
+SDK suite. The inherited phrase detector can match quotations and does not
+measure prompt effectiveness. Another extension can supersede structured
+sections by replacing the full prompt. Toggles do not retract already-sent
+instructions or prompt content returned by the profile tool.
+\end{document}

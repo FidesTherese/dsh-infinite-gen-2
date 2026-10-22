@@ -1,43 +1,52 @@
 {
   "name": "dsh-infinite-gen-2",
-  "version": "0.2.3",
-  "description": "DeepSeek Harness 破甲插件「无限二代」：v5 稳定化破甲提示词（含拒绝对抗增强），客户端在对话框上方显示「破甲已开启」状态条。",
+  "version": "0.3.0",
+  "description": "Native Pi extension for the unchanged Infinite Generation Two prompt, profile tool, and response-status heuristic.",
   "type": "module",
-  "main": "index.js",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Minglink/dsh-infinite-gen-2.git"
-  },
+  "main": "index.ts",
   "exports": {
-    ".": "./index.js",
-    "./client": "./client.js",
+    ".": "./index.ts",
     "./package.json": "./package.json"
   },
   "files": [
-    "index.js",
-    "client.js",
-    "cordis.patch.yml",
-    "HARNESS_PLUGIN.md",
+    "index.ts",
+    "src",
+    "prompts/infinite-gen-2.md",
     "README.md",
-    "LICENSE",
-    "prompts",
-    "assets"
+    "LICENSE"
   ],
-  "scripts": {
-    "harness:check": "node --check index.js && node --check client.js"
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "deepseek"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FidesTherese/dsh-infinite-gen-2.git"
   },
-  "dsh": {
-    "id": "dsh-infinite-gen-2",
-    "name": "无限二代",
-    "version": "0.2.3",
-    "repo": "Minglink/dsh-infinite-gen-2",
-    "permissions": "系统提示词注入, 客户端状态条",
-    "client": {
-      "platform": "web",
-      "immediately": true
-    },
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    }
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/extension.test.ts",
+    "check": "tsc --noEmit",
+    "smoke": "node --test --test-concurrency=1 test/smoke.test.ts"
+  },
+  "pi": {
+    "extensions": ["./index.ts"],
+    "skills": [],
+    "prompts": [],
+    "themes": []
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.99.1",
+    "@types/node": "22.19.19",
+    "typebox": "1.3.27",
+    "typescript": "5.9.3"
   }
 }

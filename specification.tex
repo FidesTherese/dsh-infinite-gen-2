@@ -1,0 +1,141 @@
+\documentclass[10pt]{ltjsarticle}
+\usepackage{tem}
+\usepackage{hyperref}
+\usetikzlibrary{positioning,arrows.meta}
+\pagestyle{fancy}
+\lhead{Infinite Generation Two}
+\rhead{Pi extension specification}
+\setlength{\headheight}{16pt}
+\setlength{\headsep}{30pt}
+\begin{document}
+\title{Infinite Generation Two\\\large{--- Native Pi Extension ---}}
+\author{Fides Thérèse}
+\date{2026-10-22}
+\maketitle
+\thispagestyle{plain}
+
+\section{Goal and acceptance criteria}
+The repository becomes a native Pi extension distributed from
+\url{https://github.com/FidesTherese/dsh-infinite-gen-2}. The extension MUST
+preserve the exact bytes of \texttt{prompts/infinite-gen-2.md}, expose the
+existing \texttt{infinite\_gen2\_profile} tool, append the bundled instructions
+without replacing Pi's base instructions, and display a session-local status
+indicator. The README MUST be English, contain accurate Pi installation
+instructions, and omit advertisements, donation requests, and promotional
+community links. The MIT notice and upstream attribution remain intact.
+
+Acceptance requires automated tests, strict TypeScript checking, a real Pi
+loader/event-runner smoke test, and a package-content check. The requested
+handoff includes a reviewed commit pushed to the fork's existing
+\texttt{master} branch without rewriting history.
+
+\section{Original repository analysis}
+The inspected baseline is commit \texttt{3a701c3}. This is a small ES-module
+DeepSeek Harness plugin, not a standalone model client. Its execution path is
+\texttt{apply(ctx)} in \texttt{index.js}: read the bundled Markdown, register an
+ordered system-prompt section, register a profile tool, and optionally register
+an in-memory response-status projection. \texttt{client.js} consumes that
+projection through a host browser module loader and React, then inserts a
+badge into the conversation input dock. The Cordis patch declares the plugin
+bundle. Four shell/PowerShell scripts copy files and alter Harness profile
+configuration; the Windows installer also registers a desktop URI scheme.
+There are no application dependencies or automated tests declared at baseline.
+
+The host APIs, browser globals, and profile installers do not exist in Pi.
+The repository's reusable assets are the prompt, profile metadata, and the
+bilingual text-marker heuristic. The README's numeric strength comparisons
+are inherited calibration labels, not demonstrated benchmarks. The detector
+can report quoted phrases as refusals and cannot measure model compliance.
+
+Recommended reading order is package metadata, the original entry point,
+the prompt asset, the projection scorer, and finally the browser/installer
+adapters. Git preserves these removed adapters at the baseline commit.
+
+\section{Chosen design and module boundaries}
+A direct TypeScript port is preferred to emulating Harness APIs or maintaining
+two host adapters: Pi already supplies prompt sections, tools, events, and
+status UI. \texttt{index.ts} owns Pi registration and ephemeral session state.
+\texttt{src/profile.ts} owns asset integrity and the read-only profile-tool
+contract. \texttt{src/armor.ts} owns pure text extraction, marker matching,
+and English status formatting. These files form one cohesive extension
+module; no service, database, browser, or provider integration is introduced.
+
+The following nodes are new or replaced in this port. The prompt node is
+unchanged. Dependencies point from the adapter to its helpers, never back.
+\begin{center}
+\definecolor{TransBlue}{HTML}{5BCEFA}
+\definecolor{TransPink}{HTML}{F5A9B8}
+\begin{tikzpicture}[font=\small, node distance=9mm and 12mm,
+  box/.style={draw,rounded corners,text width=.24\linewidth,align=center,
+  minimum height=11mm,fill opacity=.55,text opacity=1}, >=Stealth]
+  \node[box,fill=TransBlue] (pi) {Pi host\\events, tools, UI};
+  \node[box,fill=TransPink,right=of pi] (entry) {Native adapter\\index.ts};
+  \node[box,fill=TransBlue,below=of pi] (armor) {Pure status helper\\src/armor.ts};
+  \node[box,fill=TransPink,below=of entry] (profile) {Profile and integrity\\src/profile.ts};
+  \node[box,fill=white,below=of profile] (prompt) {Unchanged prompt\\Markdown asset};
+  \draw[->] (pi) -- (entry);
+  \draw[->] (entry) -- (armor);
+  \draw[->] (entry) -- (profile);
+  \draw[->] (profile) -- (prompt);
+\end{tikzpicture}
+\end{center}
+
+\section{Interfaces, state, and critical flow}
+Pi discovers \texttt{index.ts} through the explicit package manifest. On load,
+the adapter verifies the prompt's SHA-256 and registers the tool, command,
+flag, and event handlers. Before each run, the adapter sets only its own
+\texttt{infinite\_gen2} prompt section. Repeating the event replaces the same
+section rather than duplicating text; disabling removes only that section.
+It does not replace Pi's tools, project context, provider, or credentials.
+
+The parameterless profile tool returns the complete unchanged prompt, its
+fingerprint, upstream metadata, prompt version 0.2.3, and extension version
+0.3.0 as model-facing text, details, and structured JSON. The profile remains
+available while prompt injection is disabled.
+
+The extension starts enabled. \texttt{--infinite-gen2-off} disables it at
+session startup. \texttt{/infinite-gen2 on|off|status} changes or reports the
+current session state; an empty argument means status. Commands never start
+an additional model turn. State resets on session startup/reload/replacement;
+a tree move clears the verdict. It is not durable configuration.
+
+\texttt{agent\_start} clears old results and marks the run busy.
+\texttt{message\_end} inspects only assistant text, excluding thinking and
+tool blocks. Errors and cancellations, including automatic compaction failures,
+receive distinct outcomes rather than passing. Toggle commands preserve the
+busy state of an active run. \texttt{agent\_settled}, not the low-level \texttt{agent\_end}, ends
+the busy indicator after retries and queued work. Shutdown clears the status.
+The UI receives status only when available; headless model/tool behavior is
+identical and produces no unsolicited stdout.
+
+\section{Constraints, risks, and non-goals}
+The target is Node.js 22.19 or newer and Pi 0.99.1 or a compatible newer
+release. TypeScript sources load directly through Pi; no compilation is
+required for installation. Pi and TypeBox are host-provided peer dependencies.
+Development versions are pinned in the lockfile.
+
+A missing or changed prompt makes extension loading fail visibly; the port
+never substitutes another prompt. The frozen SHA-256 fingerprint is:
+\par\noindent\texttt{02679eb726507d5a6bfe0a327c8469965440be7a7c5104cab57b8d1e529ec466}
+\par
+Other extensions that force-replace the entire system prompt can override
+structured sections. Status scoring is an inherited text heuristic, not a
+security or effectiveness guarantee. The extension changes model instructions
+but does not alter provider safeguards, OS permissions, or tool approvals.
+
+DeepSeek Harness compatibility, browser animations, URI-scheme installers,
+persistent toggles, automatic retries based on verdicts, telemetry, and prompt
+translation are out of scope. The obsolete Harness code is removed rather
+than advertised as supported. Implementation detail and the dependency-safe
+roadmap belong in \texttt{docs/DTD.tex}; module context belongs in
+\texttt{docs/modules/pi-extension.tex}.
+
+\section{Verification record}
+Verification on 2026-10-22: \texttt{npm test} exercises 31 focused SDK/unit
+cases; \texttt{npm run check} performs strict TypeScript checking;
+\texttt{npm run smoke} exercises three offline CLI/package-install cases;
+\texttt{npm pack --dry-run} confirms seven required distribution files.
+The package loads through the Pi 0.99.1 CLI and was also checked with the
+current Pi 1.4.0 CLI. Tests use isolated temporary Pi state and make no model
+requests. Live DeepSeek behavior is not an acceptance claim.
+\end{document}

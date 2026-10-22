@@ -1,0 +1,17 @@
+node_modules/
+*.tgz
+*.tsbuildinfo
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.xdv
+*.bcf
+*.run.xml
+*.bbl
+*.blg

@@ -1,0 +1,3 @@
+* text=auto eol=lf
+prompts/infinite-gen-2.md -text
+*.pdf binary

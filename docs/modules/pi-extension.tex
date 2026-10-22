@@ -1,0 +1,78 @@
+\documentclass[10pt]{ltjsarticle}
+\usepackage{tem}
+\usepackage{hyperref}
+\pagestyle{fancy}
+\lhead{Infinite Generation Two}
+\rhead{Pi extension module}
+\setlength{\headheight}{16pt}
+\setlength{\headsep}{30pt}
+\begin{document}
+\title{Pi Extension Module\\\large{--- Review and Debugging Notes ---}}
+\author{Fides Thérèse}
+\date{2026-10-22}
+\maketitle
+\thispagestyle{plain}
+
+\section{Purpose and project position}
+The extension adapts the existing Infinite Generation Two prompt and metadata
+to Pi without emulating DeepSeek Harness. Pi loads the default factory in
+\texttt{index.ts} from the package manifest. This module is a leaf customization
+inside Pi, not a provider, standalone agent, or browser plugin. The module's
+architecture diagram is in the specification and implementation contracts
+are in \texttt{docs/DTD.tex}.
+
+\section{Inputs, outputs, and relationships}
+The module consumes Pi lifecycle events, slash-command arguments, the startup
+off flag, and completed assistant content. Its only asset is the original
+\texttt{prompts/infinite-gen-2.md}. Outputs are an owned structured system-prompt
+section, a read-only profile-tool result, and an English keyed UI status.
+Headless commands report a non-triggering custom message. Application code
+does not write files, open network connections, or spawn background work.
+
+The adapter depends on two pure-facing helpers. The profile helper reads and
+hashes the asset and constructs TypeBox tool schemas. The status helper
+extracts text, scans inherited bilingual phrases, and formats labels. Neither
+helper depends on the adapter. Pi provides the host API and TypeBox; Node's
+filesystem and crypto standard libraries are the only production I/O
+libraries. No separate provider SDK is required.
+
+\section{Control and state flow}
+The factory verifies the prompt before registering any capabilities. Before
+each run, the adapter assigns or deletes only its \texttt{infinite\_gen2}
+prompt section. The complete prompt is never replaced. The parameterless
+\texttt{infinite\_gen2\_profile} tool returns the unchanged prompt with upstream
+metadata as text, details, and structured JSON.
+
+Session start resets state from \texttt{--infinite-gen2-off}. Commands toggle
+injection and monitoring only for that session without clearing active-run state. Run start clears old results
+and marks the status busy. Completed assistant messages update the last text
+verdict; thinking, tool calls, user messages, and empty content are ignored.
+Provider errors and cancellations, including automatic compaction failures,
+have separate outcomes. Final settlement
+ends the busy indicator after Pi's retries and queued work, and shutdown
+clears the UI key. Tree navigation clears stale results without changing the
+toggle. No state is reconstructed from abandoned branches or persisted.
+
+\section{Key decisions and limits}
+The prompt is an immutable exact-byte asset. An invalid fingerprint or missing
+file stops extension loading; no fallback prompt is supplied. The original
+prompt version remains 0.2.3, independently of extension version 0.3.0.
+The status detector retains the upstream phrases and exclusion window. Its
+verdict describes wording only: quotes can match, and a pass does not prove
+model compliance or prompt effectiveness. It never modifies output or retries
+a model request.
+
+Pi owns model access, credentials, tool approvals, and operating-system
+permissions. A later full-prompt replacement by another extension can override
+this section. Disabling cannot retract instructions already sent or prompt
+content returned by the profile tool. New or reloaded sessions reset toggles;
+persistent preferences and browser animations are deliberately absent.
+
+\section{Relevant verification}
+Run \texttt{npm test} for actual Pi SDK loader, event-runner, command, tool,
+state, and integrity checks; \texttt{npm run check} for strict TypeScript;
+\texttt{npm run smoke} for isolated offline CLI loading; and
+\texttt{npm pack --dry-run} for distribution contents. Tests isolate the agent
+directory, use in-memory sessions, dispose resources, and make no model calls.
+Live DeepSeek response behavior is outside the verified boundary.
+\end{document}
